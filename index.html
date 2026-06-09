@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lizard Clicker Game</title>
+    <style>
+        /* Modern, minimal layout styling */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow-x: hidden;
+        }
+
+        .game-container {
+            text-align: center;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            width: 320px;
+        }
+
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 5px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .score-display {
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+            color: #a8ffb2;
+            font-weight: bold;
+        }
+
+        /* Animated lizard button setup */
+        .lizard-btn {
+            font-size: 120px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            outline: none;
+            user-select: none;
+            transition: transform 0.05s ease;
+            filter: drop-shadow(0px 10px 15px rgba(0,0,0,0.3));
+        }
+
+        .lizard-btn:active {
+            transform: scale(0.9);
+        }
+
+        .stats {
+            margin: 20px 0;
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        /* Upgrade section layout styling */
+        .upgrade-section {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .upgrade-btn {
+            background-color: #2ecc71;
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.15);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .upgrade-btn:hover:not(:disabled) {
+            background-color: #27ae60;
+            transform: translateY(-2px);
+        }
+
+        .upgrade-btn:disabled {
+            background-color: #7f8c8d;
+            cursor: not-allowed;
+            opacity: 0.6;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .upgrade-info {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .upgrade-name {
+            font-size: 1rem;
+        }
+
+        .upgrade-count {
+            font-size: 0.75rem;
+            opacity: 0.8;
+        }
+
+        .cost-tag {
+            background: rgba(0,0,0,0.2);
+            padding: 4px 8px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="game-container">
+        <h1>Lizard Clicker</h1>
+        <div class="score-display"><span id="score">0</span> Lizards 🦎</div>
+        
+        <!-- Main Interactive Clicker Target -->
+        <button class="lizard-btn" id="lizard-clicker" onclick="clickLizard()">🦎</button>
+        
+        <div class="stats">
+            <div>Lizards Per Second (LPS): <span id="lps">0</span></div>
+        </div>
+
+        <!-- System Shop and Passive Upgrades -->
+        <div class="upgrade-section">
+            <button class="upgrade-btn" id="upgrade-cricket" onclick="buyUpgrade('cricket')" disabled>
+                <div class="upgrade-info">
+                    <span class="upgrade-name">🦗 Cricket Farm</span>
+                    <span class="upgrade-count" id="count-cricket">Owned: 0 (+0.5 LPS each)</span>
+                </div>
+                <span class="cost-tag" id="cost-cricket">15</span>
+            </button>
+
+            <button class="upgrade-btn" id="upgrade-terrarium" onclick="buyUpgrade('terrarium')" disabled>
+                <div class="upgrade-info">
+                    <span class="upgrade-name">🏡 Warm Terrarium</span>
+                    <span class="upgrade-count" id="count-terrarium">Owned: 0 (+4 LPS each)</span>
+                </div>
+                <span class="cost-tag" id="cost-terrarium">100</span>
+            </button>
+
+            <button class="upgrade-btn" id="upgrade-island" onclick="buyUpgrade('island')" disabled>
+                <div class="upgrade-info">
+                    <span class="upgrade-name">🏝️ Volcano Island</span>
+                    <span class="upgrade-count" id="count-island">Owned: 0 (+32 LPS each)</span>
+                </div>
+                <span class="cost-tag" id="cost-island">1100</span>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Core Game Engine State
+        let gameData = {
+            score: 0,
+            totalLps: 0,
+            upgrades: {
+                cricket: { count: 0, baseCost: 15, currentCost: 15, lpsValue: 0.5 },
+                terrarium: { count: 0, baseCost: 100, currentCost: 100, lpsValue: 4 },
+                island: { count: 0, baseCost: 1100, currentCost: 1100, lpsValue: 32 }
+            }
+        };
+
+        // Handle direct user clicks
+        function clickLizard() {
+            gameData.score += 1;
+            updateDisplay();
+        }
+
+        // Handle item purchasing logic
+        function buyUpgrade(type) {
+            let upgrade = gameData.upgrades[type];
+            if (gameData.score >= upgrade.currentCost) {
+                gameData.score -= upgrade.currentCost;
+                upgrade.count++;
+                
+                // Exponential price progression (standard incremental game formula)
+                upgrade.currentCost = Math.floor(upgrade.baseCost * Math.pow(1.15, upgrade.count));
+                
+                recalculateLps();
+                updateDisplay();
+                saveGame();
+            }
+        }
+
+        // Calculate current processing dynamic rate
+        function recalculateLps() {
+            let lps = 0;
+            for (let key in gameData.upgrades) {
+                lps += gameData.upgrades[key].count * gameData.upgrades[key].lpsValue;
+            }
+            gameData.totalLps = lps;
+        }
+
+        // Keep DOM interface data synchronized
+        function updateDisplay() {
+            document.getElementById('score').innerText = Math.floor(gameData.score).toLocaleString();
+            document.getElementById('lps').innerText = gameData.totalLps.toFixed(1);
+
+            for (let key in gameData.upgrades) {
+                let upgrade = gameData.upgrades[key];
+                document.getElementById(`cost-${key}`).innerText = upgrade.currentCost.toLocaleString();
+                document.getElementById(`count-${key}`).innerText = `Owned: ${upgrade.count} (+${(upgrade.count * upgrade.lpsValue).toFixed(1)} LPS)`;
+                
+                // Toggle shop availability conditionally
+                let btn = document.getElementById(`upgrade-${key}`);
+                btn.disabled = gameData.score < upgrade.currentCost;
+            }
+        }
+
+        // Passive loop handling real-time ticks (running 10 times a second for smoother visual updates)
+        setInterval(function() {
+            if (gameData.totalLps > 0) {
+                gameData.score += (gameData.totalLps / 10);
+                updateDisplay();
+            }
+        }, 100);
+
+        // Persistent Session Storage Logic
+        function saveGame() {
+            localStorage.setItem('lizardClickerSave', JSON.stringify(gameData));
+        }
+
+        function loadGame() {
+            let savedData = localStorage.getItem('lizardClickerSave');
+            if (savedData) {
+                let parsed = JSON.parse(savedData);
+                // Schema protection fallback for safety
+                if (parsed && parsed.upgrades) {
+                    gameData.score = parsed.score || 0;
+                    for (let key in gameData.upgrades) {
+                        if (parsed.upgrades[key]) {
+                            gameData.upgrades[key].count = parsed.upgrades[key].count || 0;
+                            gameData.upgrades[key].currentCost = parsed.upgrades[key].currentCost || gameData.upgrades[key].baseCost;
+                        }
+                    }
+                    recalculateLps();
+                }
+            }
+            updateDisplay();
+        }
+
+        // Periodically write data to disk every 15 seconds
+        setInterval(saveGame, 15000);
+
+        // Initialize runtime variables
+        window.onload = function() {
+            loadGame();
+        };
+    </script>
+</body>
+</html>
